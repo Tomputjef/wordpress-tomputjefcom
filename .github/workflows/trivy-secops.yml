@@ -18,8 +18,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          token: '${{ secrets.nourman_pat }}'
 
       - name: Set up Helm
         uses: azure/setup-helm@v4.2.0
@@ -30,23 +28,15 @@ jobs:
         with:
           python-version: 3.12.4
 
-      - name: Run Trivy vulnerability scanner dont have code scanning enabled
+      - name: Run Trivy vulnerability scanner in repo mode
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          scan-type: 'config'
-          hide-progress: false
-          output: trivy.txt
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
 
-      - name: Publish Trivy Output to Summary
-        run: |
-          if [[ -s trivy.txt ]]; then
-            {
-              echo "### Security Output"
-              echo "<details><summary>Click to expand</summary>"
-              echo ""
-              echo '```terraform'
-              cat trivy.txt
-              echo '```'
-              echo "</details>"
-            } >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
